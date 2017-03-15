@@ -2,6 +2,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from utils import BoxEntry, FileHandler
 import math
+import sys
 
 class MainWindow:
     def __init__(self, master):
@@ -33,17 +34,19 @@ class PicController:
     bbList = []
     active_type = 1
     active_color = 'red'
-    folder = 'set1'
-    fileCont = FileHandler(folder)
-    picture_count = fileCont.count_pics(folder)
+    folder = ''
+    fileCont = {}
+    picture_count = 0
     x_size = 640
     y_size = 480
     image_index = 1
 
-    def __init__(self, canvas):
+    def __init__(self, canvas, folder):
         self.image_index = 1
         self.canvas = canvas
-
+        self.folder = folder
+        self.fileCont = FileHandler(folder)
+        self.picture_count = self.fileCont.count_pics(folder)
         self.activeRect = self.canvas.create_rectangle(0,0,0,0,fill='red')
         self.canvas.bind('<Button-1>', self.click_callback)
         self.canvas.bind('<ButtonRelease-1>', self.clickUp_callback)
@@ -168,10 +171,13 @@ class PicController:
             self.active_type = 5
             self.active_color = 'pink'
 
-root = tk.Tk()
+if len(sys.argv) == 1:
+    print('Argument 1 is folder to annotate.')
+    quit()
 
+root = tk.Tk()
 app = MainWindow(root)
-cntrl = PicController(app.canvas)
+cntrl = PicController(app.canvas, sys.argv[1])
 
 
 root.mainloop()
