@@ -25,15 +25,27 @@ class BoxEntry:
 
 class FileHandler:
     folder = ""
-    def __init__(self, folder):
+    file_list = []
+    file_count = 0
+    current_pic = ""
+    listnum = None
+    def __init__(self, folder, listnum=None):
         if not os.path.exists(folder):
             print('Could not find specified data folder:', folder)
         else:
+            self.listnum = listnum
             self.folder = folder
+            files = os.listdir(folder)
+            for f in files:
+                if re.search('\.jpg\Z', f) != None:
+                    self.file_list.append(f)
+            self.file_count = len(self.file_list)
+            self.file_list.sort()
+
 
 
     def write_list(self, bbList, folder):
-        f = open(folder+'/list.txt', 'w')
+        f = open(folder+'/list%s.txt'%self.listnum, 'w')
         for list_item in bbList:
             f.write(str(list_item) + '\n')
         f.close()
@@ -41,23 +53,29 @@ class FileHandler:
     def read_list(self, folder):
         bbList = []
         max_index = 0
-        f = open(folder+'/list.txt', 'r')
-        for line in f:
+        name_list = []
+        list_file = open(folder+'/list.txt', 'r')
+
+        files = os.listdir(folder)
+        self.file_list = []
+        for f in files:
+            if re.search('\.jpg\Z', f) != None:
+                self.file_list.append(f)
+        self.file_count = len(self.file_list)
+
+        for line in list_file:
             bbList.append(BoxEntry(line))
             tokens = line.strip().split(' ')
-            fname = tokens[0]
-            num = int(fname[3:6])
-            if num > max_index:
-                max_index = num
+            name_list.append(tokens[0])
 
-        return bbList, max_index
+        self.file_list = [x for x in self.file_list if x not in name_list]
+        self.file_list.sort()
 
-    def read_pic(self, number):
-        numString = str(number)
-        while len(numString) < 3:
-            numString = '0' + numString
+        return bbList
 
-        image = Image.open(self.folder + '/img%s.jpg'%numString)
+    def read_pic(self):
+        self.current_pic = self.file_list.pop()
+        image = Image.open(self.folder + '/' + self.current_pic)
         return ImageTk.PhotoImage(image)
 
     def count_pics(self,folder):
