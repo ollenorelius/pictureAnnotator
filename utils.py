@@ -2,6 +2,7 @@ from PIL import Image, ImageTk
 import os
 import re
 
+
 class BoxEntry:
     coords = (0,0,0,0)
     pic = 0

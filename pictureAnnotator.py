@@ -3,14 +3,14 @@ from PIL import Image, ImageTk
 from utils import BoxEntry, FileHandler
 import math
 import sys
-import re
+
 
 class MainWindow:
     def __init__(self, master):
         frame = tk.Frame(master)
         frame.pack()
 
-        self.canvas = tk.Canvas(frame,width=640, height=480)
+        self.canvas = tk.Canvas(frame, width=640, height=480)
         #master.geometry('640x530+0+0')
         self.canvas.pack()
 
@@ -29,6 +29,7 @@ class MainWindow:
     def key_callback(self, event):
         print('pressed', event.char)
 
+
 class PicController:
     rectList = []
     activeRect = 0
@@ -41,15 +42,13 @@ class PicController:
     x_size = 640
     y_size = 480
     image_index = 1
-    file_list = []
-    photo = None
 
-    def __init__(self, canvas, folder, listnum=None):
+    def __init__(self, canvas, folder):
         self.image_index = 1
         self.canvas = canvas
         self.folder = folder
-        self.fileCont = FileHandler(folder, listnum)
-        self.picture_count = self.fileCont.file_count
+        self.fileCont = FileHandler(folder)
+        self.picture_count = self.fileCont.count_pics(folder)
         self.activeRect = self.canvas.create_rectangle(0,0,0,0,fill='red')
         self.canvas.bind('<Button-1>', self.click_callback)
         self.canvas.bind('<ButtonRelease-1>', self.clickUp_callback)
@@ -61,8 +60,8 @@ class PicController:
 
 
     def draw_picture(self):
-        if self.photo == None:
-            self.photo = self.fileCont.read_pic()
+
+        self.photo = self.fileCont.read_pic(self.image_index)
         w = self.canvas.create_image((0,0), image=self.photo,anchor='nw')
         return w
 
@@ -83,7 +82,7 @@ class PicController:
         if self.check_box(coords):
             a = BoxEntry()
             a.coords = self.normalize_coords(coords)
-            a.pic = self.fileCont.current_pic
+            a.pic = self.get_current_filename()
             a.box_type = self.active_type
             self.bbList.append(a)
         self.canvas.coords(self.activeRect, coords)
@@ -123,16 +122,18 @@ class PicController:
     def key_callback(self, event):
         print('pressed', event.char)
         if event.char == " ":
-            if len(self.fileCont.file_list) == 0:
+            if self.image_index != self.picture_count:
+                self.image_index = self.image_index + 1
+            else:
                 print('Done! No more pictures to annotate.')
                 self.fileCont.write_list(self.bbList, self.folder)
-            else:
-                for ibox in self.rectList:
-                    self.canvas.delete(ibox)
 
-                self.rectList = []
-                self.photo = self.fileCont.read_pic()
-                self.canvas.itemconfig(self.pic, image=self.photo)
+            for ibox in self.rectList:
+                self.canvas.delete(ibox)
+
+            self.rectList = []
+            self.photo = self.fileCont.read_pic(self.image_index)
+            self.canvas.itemconfig(self.pic, image=self.photo)
 
         elif event.char == 'q':
             print(self.rectList)
@@ -144,10 +145,12 @@ class PicController:
 
         elif event.char == 'r':
             self.rectList = []
-            self.bbList = self.fileCont.read_list(self.folder)
-            if len(self.fileCont.file_list) != 0:
-                self.photo = self.fileCont.read_pic()
-                self.canvas.itemconfig(self.pic, image=self.photo)
+            self.bbList, self.image_index = self.fileCont.read_list(self.folder)
+            print('loaded list up to picture %i'%self.image_index)
+            self.image_index = self.image_index + 1
+
+            self.photo = self.fileCont.read_pic(self.image_index)
+            self.canvas.itemconfig(self.pic, image=self.photo)
 
 
         elif event.char == '1':
@@ -176,13 +179,7 @@ if len(sys.argv) == 1:
 
 root = tk.Tk()
 app = MainWindow(root)
-if '-list' in sys.argv:
-    idx = sys.argv.index('-list') + 1
-    listnum = sys.argv[idx]
-else:
-    listnum = None
-
-cntrl = PicController(app.canvas, sys.argv[1], listnum)
+cntrl = PicController(app.canvas, sys.argv[1])
 
 
 root.mainloop()
